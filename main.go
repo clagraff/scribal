@@ -2,7 +2,6 @@ package main
 
 import (
 	_ "embed"
-	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
@@ -11,7 +10,6 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"io/fs"
 	"io/ioutil"
-	"time"
 )
 //go:embed "icon.png"
 var applicationIcon []byte
@@ -31,35 +29,21 @@ func main() {
 	entry.Bind(text)
 	entry.Validator = nil // Turn off validation
 	entry.SetPlaceHolder("Your thoughts here")
+	entry.OnChanged = func(s string) {
+		ioutil.WriteFile(filePath, []byte(s), fs.ModePerm)
+	}
 
 	fileBytes, err := ioutil.ReadFile(filePath)
 	if err == nil {
 		text.Set(string(fileBytes))
 	}
 
+	menu := fyne.NewMenu("File", fyne.NewMenuItem("Save", func() {}))
+	mainMenu := fyne.NewMainMenu(menu)
+	window.SetMainMenu(mainMenu)
 	content := container.New(layout.NewMaxLayout(), entry)
 
 	window.SetContent(content)
-
-	done := make(chan bool)
-	go autoSave(text, done)
 	window.ShowAndRun()
-	done <- true
 }
 
-func autoSave(text binding.String, cancel <-chan bool) {
-	ticker := time.NewTicker(500 * time.Millisecond)
-	for {
-		select {
-		case <-cancel:
-			return
-		case t := <-ticker.C:
-			fmt.Println("Tick at", t)
-			content, err := text.Get()
-			if err != nil {
-				panic(err)
-			}
-			ioutil.WriteFile(filePath, []byte(content), fs.ModePerm)
-		}
-	}
-}
