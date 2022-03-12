@@ -1,4 +1,4 @@
-module scribal
+module github.com/clagraff/scribal
 
 go 1.17
 
